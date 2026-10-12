@@ -50,3 +50,7 @@ RSpec/DescribeClass:
   Enabled: false
 RSpec/SpecFilePathFormat:
   Enabled: false
+# Releases are pushed from CI with the RUBYGEMS_API_KEY secret, which an
+# MFA-required gem would reject.
+Gemspec/RequireMFA:
+  Enabled: false
