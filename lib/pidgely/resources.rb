@@ -46,7 +46,7 @@ module Pidgely
     class EmailAttachments < Base
       # GET /emails/{email_id}/attachments
       def list(params, options = {})
-        get("/emails/#{seg(fetch(params, :email_id))}/attachments", query: page(params), options: options)
+        @transport.request(:get, "/emails/#{seg(fetch(params, :email_id))}/attachments", query: page(params), options: options)
       end
 
       # GET /emails/{email_id}/attachments/{id}: includes a signed download_url valid for 1 hour.
@@ -257,7 +257,7 @@ module Pidgely
       end
 
       def path(contact)
-        return "/contacts/#{id!(contact, 'id or email')}" unless contact.is_a?(Hash)
+        return "/contacts/#{id!(contact, "id or email")}" unless contact.is_a?(Hash)
 
         "#{base(contact)}/#{seg(fetch(contact, :id, :email))}"
       end

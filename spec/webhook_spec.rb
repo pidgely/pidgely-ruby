@@ -43,7 +43,7 @@ RSpec.describe Pidgely::Webhook do
     expect(c.webhooks.verify(payload: payload, headers: headers, webhook_secret: secret, now: ts)).to eq({ test: 2_432_232_314 })
   end
 
-  other = "whsec_#{['another secret value!!'].pack('m0')}"
+  other = "whsec_#{["another secret value!!"].pack("m0")}"
   {
     "a tampered payload" => [{ payload: '{"test": 2432232315}' }, "No matching signature"],
     "a wrong secret" => [{ webhook_secret: other }, "No matching signature"],

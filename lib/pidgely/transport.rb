@@ -96,7 +96,7 @@ module Pidgely
 
     def build_uri(path, query)
       uri = URI.parse(@base_url + path)
-      params = (query || {}).compact.transform_values { |v| v.to_s }
+      params = (query || {}).compact.transform_values(&:to_s)
       uri.query = URI.encode_www_form(params) unless params.empty?
       uri
     end
@@ -208,7 +208,7 @@ module Pidgely
         value = params[key.to_sym] || params[key.to_s]
         return value.to_s unless value.nil? || value.to_s.empty?
       end
-      raise Error.new("Missing #{keys.map { |k| "`#{k}`" }.join(' or ')} field.", name: "missing_required_field")
+      raise Error.new("Missing #{keys.map { |k| "`#{k}`" }.join(" or ")} field.", name: "missing_required_field")
     end
 
     def id!(value, name = "id")
@@ -219,7 +219,7 @@ module Pidgely
 
     def without(params, *keys)
       names = keys.flat_map { |k| [k.to_s, k.to_sym] }
-      params.to_h.reject { |k, _| names.include?(k) }
+      params.to_h.except(*names)
     end
 
     def page(params, *extra)
