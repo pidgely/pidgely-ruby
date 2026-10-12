@@ -1,0 +1,52 @@
+name: Release
+
+# Publishes the gem to RubyGems when a `v*` tag is pushed:
+#   git tag v0.1.0 && git push origin v0.1.0
+# Requires the repository secret RUBYGEMS_API_KEY (a RubyGems API key scoped to
+# "Push rubygem" for the `pidgely` gem; the account's MFA level must allow API-key pushes,
+# i.e. "UI and gem signin", not "UI and API").
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # create the GitHub release
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+    steps:
+      - name: Check RUBYGEMS_API_KEY
+        run: |
+          if [ -z "$RUBYGEMS_API_KEY" ]; then
+            echo "::error::The RUBYGEMS_API_KEY secret is not set. See the Publishing section of the README."
+            exit 1
+          fi
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+      - name: Check tag matches Pidgely::VERSION
+        run: |
+          version="$(ruby -Ilib -e 'require "pidgely/version"; print Pidgely::VERSION')"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match Pidgely::VERSION $version"
+            exit 1
+          fi
+      - run: bundle exec rubocop
+      - run: bundle exec rspec
+      - run: gem build pidgely.gemspec
+      - name: Publish to RubyGems
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: gem push pidgely-*.gem
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="$(awk -v v="${GITHUB_REF_NAME#v}" '$0 ~ "^## \\[?"v {f=1; next} /^## / && f {exit} f' CHANGELOG.md)"
+          gh release create "$GITHUB_REF_NAME" pidgely-*.gem --title "$GITHUB_REF_NAME" --notes "${notes:-See CHANGELOG.md}"
