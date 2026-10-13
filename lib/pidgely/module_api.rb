@@ -43,7 +43,7 @@ module Pidgely
 
   # Contacts, addressed by id or email.
   module Contacts
-    ModuleAPI.define(self, "contacts", :create, :list, :get, :update, :remove)
+    ModuleAPI.define(self, "contacts", :create, :batch, :list, :get, :update, :remove)
 
     # Segment memberships of a contact.
     module Segments
@@ -68,7 +68,7 @@ module Pidgely
 
   # Templates, addressed by id or alias.
   module Templates
-    ModuleAPI.define(self, "templates", :create, :list, :get, :update, :remove, :publish, :duplicate)
+    ModuleAPI.define(self, "templates", :create, :list, :get, :update, :remove, :publish, :preview, :duplicate)
   end
 
   # Webhook endpoints. Webhooks.verify needs no API key.

@@ -28,11 +28,14 @@ RSpec.describe "module API" do
     Pidgely::Webhooks.rotate_signing_secret("w1")
     Pidgely::Contacts.get({ email: "a@b.c" })
     Pidgely::Suppressions.add({ email: "a@b.c" })
+    Pidgely::Templates.preview("t1", { variables: { NAME: "Ana" } })
+    Pidgely::Contacts.batch({ contacts: [{ email: "a@b.c" }], segment_id: "s1" })
     expect(paths).to eq([
                           [:get, "/emails/e1/attachments"], [:post, "/contacts/a@b.c/segments/s1"], [:post, "/suppressions/batch/add"],
                           [:get, "/api-keys"], [:get, "/segments/s1"], [:get, "/segments/s1/contacts"], [:post, "/domains/d1/verify"],
                           [:post, "/emails/batch"], [:post, "/broadcasts/b1/send"], [:post, "/templates/t1/publish"],
-                          [:post, "/webhooks/w1/signing-secret/rotate"], [:get, "/contacts/a@b.c"], [:post, "/suppressions"]
+                          [:post, "/webhooks/w1/signing-secret/rotate"], [:get, "/contacts/a@b.c"], [:post, "/suppressions"],
+                          [:post, "/templates/t1/preview"], [:post, "/contacts/batch"]
                         ])
   end
 

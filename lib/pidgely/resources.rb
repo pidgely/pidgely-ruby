@@ -229,6 +229,13 @@ module Pidgely
         post(base(params), body: without(params, :audience_id), options: options)
       end
 
+      # POST /contacts/batch: creates or updates up to 1,000 contacts by email
+      # ({ contacts: [...], segment_id: }). Each row is saved independently; invalid rows
+      # are reported in errors with their index.
+      def batch(params, options = {})
+        post("/contacts/batch", body: params, options: options)
+      end
+
       # GET /contacts, optionally filtered by segment_id.
       def list(params = {}, options = {})
         @transport.request(:get, "/contacts", query: page(params, :segment_id, :audience_id), options: options)
@@ -369,6 +376,12 @@ module Pidgely
       # POST /templates/{id_or_alias}/publish: the published version is what `template` sends.
       def publish(id_or_alias, options = {})
         post("/templates/#{id!(id_or_alias)}/publish", options: options)
+      end
+
+      # POST /templates/{id_or_alias}/preview: renders the draft with { variables: {...} }
+      # without sending. missing_variables lists the variables with neither a value nor a fallback.
+      def preview(id_or_alias, params = {}, options = {})
+        post("/templates/#{id!(id_or_alias)}/preview", body: params || {}, options: options)
       end
 
       # POST /templates/{id_or_alias}/duplicate

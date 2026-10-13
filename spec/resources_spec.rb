@@ -23,6 +23,9 @@ RSpec.describe "resources" do
     "api_keys.remove" => [->(c) { c.api_keys.remove("k1") }, :delete, "/api-keys/k1", nil, nil],
     "contacts.create" => [->(c) { c.contacts.create({ email: "ana@x.y", segments: [{ id: "s1" }] }) }, :post, "/contacts", nil, { "email" => "ana@x.y", "segments" => [{ "id" => "s1" }] }],
     "contacts.create audience" => [->(c) { c.contacts.create({ email: "ana@x.y", audience_id: "aud1" }) }, :post, "/audiences/aud1/contacts", nil, { "email" => "ana@x.y" }],
+    "contacts.batch" => [->(c) { c.contacts.batch({ contacts: [{ email: "ana@x.y", first_name: "Ana", unsubscribed: false }, { email: "bo@x.y" }], segment_id: "s1" }) },
+                         :post, "/contacts/batch", nil,
+                         { "contacts" => [{ "email" => "ana@x.y", "first_name" => "Ana", "unsubscribed" => false }, { "email" => "bo@x.y" }], "segment_id" => "s1" }],
     "contacts.list" => [->(c) { c.contacts.list({ segment_id: "s1", limit: 100 }) }, :get, "/contacts", { "limit" => "100", "segment_id" => "s1" }, nil],
     "contacts.list audience" => [->(c) { c.contacts.list({ audience_id: "a1" }) }, :get, "/contacts", { "audience_id" => "a1" }, nil],
     "contacts.get string" => [->(c) { c.contacts.get("ana+x@x.y") }, :get, "/contacts/ana+x@x.y", nil, nil],
@@ -57,6 +60,9 @@ RSpec.describe "resources" do
     "templates.remove" => [->(c) { c.templates.remove("welcome") }, :delete, "/templates/welcome", nil, nil],
     "templates.publish" => [->(c) { c.templates.publish("welcome") }, :post, "/templates/welcome/publish", nil, nil],
     "templates.duplicate" => [->(c) { c.templates.duplicate("welcome") }, :post, "/templates/welcome/duplicate", nil, nil],
+    "templates.preview" => [->(c) { c.templates.preview("welcome", { variables: { NAME: "Ana", DAYS: 14 } }) }, :post, "/templates/welcome/preview", nil,
+                            { "variables" => { "NAME" => "Ana", "DAYS" => 14 } }],
+    "templates.preview no variables" => [->(c) { c.templates.preview("wel come") }, :post, "/templates/wel%20come/preview", nil, {}],
     "webhooks.create" => [->(c) { c.webhooks.create({ endpoint: "https://acme.com/wh", events: ["email.delivered"] }) }, :post, "/webhooks", nil,
                           { "endpoint" => "https://acme.com/wh", "events" => ["email.delivered"] }],
     "webhooks.list" => [->(c) { c.webhooks.list }, :get, "/webhooks", nil, nil],
@@ -119,6 +125,19 @@ RSpec.describe "resources" do
     expect(batch).to have_been_requested
   end
 
+  it "returns the template preview and per-row contact batch errors" do
+    stub_request(:post, "#{BASE}/templates/welcome/preview")
+      .to_return(json(200, { object: "template_preview", subject: "Hi Ana", html: "<p>Hi Ana</p>", text: "Hi Ana", missing_variables: ["DAYS"] }))
+    stub_request(:post, "#{BASE}/contacts/batch")
+      .to_return(json(200, { object: "list", data: [{ index: 0, id: "c1" }], errors: [{ index: 1, message: "email: is invalid" }] }))
+    preview = client.templates.preview("welcome", { variables: { NAME: "Ana" } })
+    expect(preview[:subject]).to eq("Hi Ana")
+    expect(preview[:missing_variables]).to eq(["DAYS"])
+    result = client.contacts.batch({ contacts: [{ email: "a@b.c" }, { email: "bad" }] })
+    expect(result[:data].first).to eq({ index: 0, id: "c1" })
+    expect(result[:errors].first[:index]).to eq(1)
+  end
+
   it "returns symbol-keyed hashes" do
     stub_request(:get, "#{BASE}/domains/d1").to_return(json(200, { id: "d1", records: [{ record: "DKIM", priority: 10 }] }))
     expect(client.domains.get("d1")[:records].first[:priority]).to eq(10)
@@ -134,7 +153,8 @@ RSpec.describe "resources" do
     ["contacts.get empty", ->(c) { c.contacts.get("") }],
     ["contacts.update", ->(c) { c.contacts.update({ first_name: "x" }) }],
     ["contacts.segments.add", ->(c) { c.contacts.segments.add({ email: "a@b.c" }) }],
-    ["templates.publish", ->(c) { c.templates.publish(nil) }]
+    ["templates.publish", ->(c) { c.templates.publish(nil) }],
+    ["templates.preview", ->(c) { c.templates.preview("") }]
   ].each do |name, call|
     it "rejects #{name} without its required id" do
       expect { call.call(client) }.to raise_error(Pidgely::Error) { |e|
